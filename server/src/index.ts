@@ -86,15 +86,33 @@ function startBackgroundAutomationEngine() {
   }, 120000); // Every 2 minutes
 }
 
-// Initialize DB and launch server
-initDb()
-  .then(() => {
-    server.listen(PORT, () => {
-      console.log(`🚀 [Realtime Server] Running on http://localhost:${PORT}`);
-      console.log(`⚡ WebSocket Server active on ws://localhost:${PORT}`);
-      startBackgroundAutomationEngine();
+// Serverless middleware to ensure DB is initialized on Vercel
+let isDbInitialized = false;
+app.use(async (req, res, next) => {
+  if (!isDbInitialized) {
+    try {
+      await initDb();
+      isDbInitialized = true;
+    } catch (err) {
+      console.error('Database initialization error:', err);
+    }
+  }
+  next();
+});
+
+// Initialize DB and launch server locally
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  initDb()
+    .then(() => {
+      server.listen(PORT, () => {
+        console.log(`🚀 [Realtime Server] Running on http://localhost:${PORT}`);
+        console.log(`⚡ WebSocket Server active on ws://localhost:${PORT}`);
+        startBackgroundAutomationEngine();
+      });
+    })
+    .catch((err) => {
+      console.error('Failed to initialize database:', err);
     });
-  })
-  .catch((err) => {
-    console.error('Failed to initialize database:', err);
-  });
+}
+
+export default app;

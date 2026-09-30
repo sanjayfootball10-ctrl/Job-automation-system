@@ -24,8 +24,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
 
-    const socketInstance = io('http://localhost:5000', {
-      transports: ['websocket', 'polling']
+    const socketTarget = import.meta.env.VITE_SOCKET_URL ||
+      import.meta.env.VITE_SERVER_URL ||
+      (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
+
+    const socketInstance = io(socketTarget, {
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+      reconnectionAttempts: 5
     });
 
     socketInstance.on('connect', () => {
